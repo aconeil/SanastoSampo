@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+body {
+  background-color: AntiqueWhite;
+  color: Maroon;
+  font-family: Georgia, serif;
+}
+
+h1 {
+  color: black;
+  font-size: 45px;
+  text-align: center; 
+  padding: 5px;
+  font-family: 'Brush Script MT', cursive;
+}
+</style>
+    <title>SanastoSampo</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <meta charset="UTF-8"/>
+</head>
+
+<h1>SanastoSampo</h1>
+    <h4>Tämä verkkosivu luotiin auttamaan suomen kielen opiskelijoita lukemaan. Voit laittaa tekstiä alle löytääksesi yleisimmät sanat. Valitse uudet sanat listasta ja viedä ne CSV-tiedostoon. CSV-tiedosto toimii Quizletin kanssa. Lue sanat ennen tekstin lukemista parantaaksesi ymmärtämistä. Nykyinen tekstin kokorajoitus on 600 sanaa.</h4>
+    <p><i>Huom! Kirjaimet ä, ö, ja å näyttävät vääriltä jos et avaa csv-tiedosto Google Sheet:issä. Voi avata Excelissä, mutta on vaikeammin. Excelissä, valitse “tiedot”, sitten valitse “Nouda tiedot”. Luettelolla on vaihtoehto “tiedosto”, napsauta sitä ja sitten valitse “tekstistä tai CSV:stä.” Ikkuna tulee näkyviin. Tuolla napsauta “Avaa muodossa>CSV-tiedosto.” Lopuksi, valitse “Sulje ja laata.” </i></p>
+    <h4>Kopioi teksti alle: </h4>
+    <textarea id= "input" rows = "5" cols = "60" name = "text"></textarea>
+    <br>
+    <button onclick="run();">Laske sanat</button>
+    <ol id="output"></ol>
+<script>
+  var getlemma = function(lst) {
+      let s = lst[0].split('/')[1];
+      if (s.includes('><')) {
+          return s.split('><')[0] + '>';
+      } else if (s.includes('>')) {
+          return s;
+      } else {
+          return '*';
+      }
+  };
+  var count = function(lst) {
+      let counts = {};
+      for (let i = 0; i < lst.length; i++) {
+          let k = getlemma(lst[i]);
+          if (!counts.hasOwnProperty(k)) {
+              counts[k] = 0;
+          }
+          counts[k]++;
+          console.log(['getlemma', lst[i][0], k]);
+      }
+      return counts;
+  };
+  var display = function(lst) {
+      console.log(['display', lst]);
+      let wd_count = count(lst);
+      console.log(wd_count);
+      let order = [];
+      for (var k in wd_count) {
+          order.push(k);
+      }
+      order.sort(function(x,y){ return wd_count[y] - wd_count[x]; });
+      let s = "";
+      for (let i = 0; i < order.length; i++) {
+          let wd = order[i];
+          if (wd.includes('<punct>') || wd.includes('<sym>') || wd.includes('<num>') || wd == '*') {
+              continue;
+          }
+          s += '<li><input type="checkbox" class="selectedword">' + wd.replace('<post>', '<jälkiasetuksen>').replace('<prn>', '<pronomini>').replace('<vblex>', '<verbi>').replace('<det>', '<määrittäjä>').replace('<cnjcoo>', '<rinnastuskonjunktio>').replace('<cnjadv>', '<konjunktiivinen adverbi>').replace('<n>', '<substantiivi>').replace('<np>', '<erisnimi>').replace('<adv>', '<adverbi>').replace('<vaux>', '<apuverbi>').replace('<adj>', '<adjektiivi>').replace('<', ' [sananluokka: ').replace('>', ']') + ' (' + wd_count[wd] + ')</li>';
+      }
+      console.log(s);
+      document.getElementById('output').innerHTML = s + ('<button onclick="download_csv_file()">Tee tiedosto</button>');
+  };
+
+  var run = function() {
+      $.ajax({
+          url: "https://beta.apertium.org/apy/analyse",
+          jsonp: "callback",
+          dataType: "jsonp",
+          data: {
+              lang: "fin",
+              modes: "disam",
+              q: document.getElementById("input").value
+          },
+          contentType: "application/x-www-form-urlencoded;charset=UTF-8",
+          success: function(response) {
+              console.log(response);
+              display(response);
+          }
+      });
+  };
+  
+  function download_csv_file() {  
+    var csvFileData = Array.from(document.getElementsByClassName('selectedword'));  
+    var csv = 'Sanalista\n';
+      csvFileData.forEach(function(chbox) {
+          if (chbox.checked) {
+            csv += chbox.parentElement.innerText.substr(0, chbox.parentElement.innerText.indexOf('['));
+            csv += "\n";
+          }
+      });
+    document.write(csv);
+    var hiddenElement = document.createElement('a');
+    hiddenElement.href = 'data:text/csv;charset=utf-8,' + encodeURI(csv);
+    hiddenElement.target = '_blank';
+    hiddenElement.download = 'SanastoSampoLista.csv';
+    hiddenElement.click();
+}
+</script>
+  </body>
+</html>
